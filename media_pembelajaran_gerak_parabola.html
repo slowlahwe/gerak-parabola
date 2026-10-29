@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Media Pembelajaran Gerak Parabola</title>
+<style>
+  :root { --navy:#17324d; --blue:#2463eb; --cyan:#dff4ff; --bg:#f3f7fc; --ink:#243247; }
+  * { box-sizing:border-box; }
+  body { margin:0; font-family:Arial,Helvetica,sans-serif; background:var(--bg); color:var(--ink); }
+  header { background:linear-gradient(120deg,#17324d,#2463eb); color:white; padding:26px 18px; text-align:center; }
+  header h1 { margin:0 0 8px; font-size:clamp(1.5rem,4vw,2.25rem); }
+  header p { margin:0; opacity:.92; }
+  main { max-width:1100px; margin:22px auto; padding:0 16px 30px; }
+  .layout { display:grid; grid-template-columns:280px 1fr; gap:18px; align-items:start; }
+  .card { background:white; border-radius:16px; padding:20px; box-shadow:0 5px 20px #18324d12; }
+  h2 { font-size:1.15rem; margin:0 0 16px; color:var(--navy); }
+  label { display:block; font-weight:700; margin:15px 0 7px; }
+  input { width:100%; padding:11px 12px; border:1px solid #cbd5e1; border-radius:9px; font-size:1rem; }
+  input:focus { outline:2px solid #93c5fd; border-color:var(--blue); }
+  .hint { font-size:.83rem; color:#64748b; margin-top:5px; }
+  button { border:0; border-radius:9px; padding:11px 14px; font-weight:700; cursor:pointer; font-size:.95rem; }
+  .primary { background:var(--blue); color:white; width:100%; margin-top:18px; }
+  .secondary { background:#e8eef8; color:var(--navy); }
+  .actions { display:flex; gap:9px; flex-wrap:wrap; margin-top:12px; }
+  .chart-wrap { width:100%; }
+  canvas { width:100%; height:390px; display:block; background:#fff; border-radius:10px; }
+  .metrics { display:grid; grid-template-columns:repeat(3,1fr); gap:10px; margin-top:14px; }
+  .metric { background:#eef6ff; border-radius:12px; padding:13px; }
+  .metric .label { font-size:.82rem; color:#52657a; margin-bottom:7px; }
+  .metric strong { font-size:1.3rem; color:#174ea6; }
+  .formula { line-height:1.8; background:#f8fafc; border-left:4px solid var(--blue); padding:12px 14px; border-radius:7px; overflow-wrap:anywhere; }
+  .note { font-size:.9rem; line-height:1.55; color:#536579; }
+  footer { text-align:center; color:#64748b; padding:8px 16px 25px; font-size:.85rem; }
+  @media(max-width:760px) { .layout { grid-template-columns:1fr; } canvas { height:320px; } .metrics { grid-template-columns:1fr; } }
+</style>
+</head>
+<body>
+<header>
+  <h1>🚀 Media Pembelajaran Gerak Parabola</h1>
+  <p>Eksplorasi pengaruh kecepatan awal dan sudut elevasi terhadap lintasan benda</p>
+</header>
+<main>
+  <div class="layout">
+    <section class="card">
+      <h2>Masukan</h2>
+      <label for="speed">Kecepatan awal (v₀), m/s</label>
+      <input id="speed" type="number" min="0.1" max="500" step="0.5" value="20">
+      <div class="hint">Masukkan nilai kecepatan awal positif.</div>
+      <label for="angle">Sudut elevasi (θ), derajat</label>
+      <input id="angle" type="number" min="1" max="89" step="1" value="45">
+      <div class="hint">Gunakan sudut antara 1° dan 89°.</div>
+      <button class="primary" id="process">Hitung dan tampilkan grafik</button>
+      <div class="actions">
+        <button class="secondary" id="animate">▶ Animasi gerak</button>
+        <button class="secondary" id="reset">Atur ulang</button>
+      </div>
+      <p class="note">Model ideal: percepatan gravitasi g = 10 m/s², hambatan udara diabaikan, dan benda mendarat pada ketinggian yang sama dengan titik awal.</p>
+    </section>
+    <section class="card chart-wrap">
+      <h2>Grafik Lintasan Gerak Parabola</h2>
+      <canvas id="chart" aria-label="Grafik jarak terhadap ketinggian"></canvas>
+      <div class="metrics">
+        <div class="metric"><div class="label">Tinggi maksimum (H maks)</div><strong id="height">—</strong></div>
+        <div class="metric"><div class="label">Jarak maksimum (R maks)</div><strong id="range">—</strong></div>
+        <div class="metric"><div class="label">Waktu total (t maks)</div><strong id="time">—</strong></div>
+      </div>
+    </section>
+  </div>
+  <section class="card" style="margin-top:18px">
+    <h2>Rumus yang digunakan</h2>
+    <div class="formula">
+      Komponen kecepatan horizontal: <b>vₓ = v₀ cos θ</b><br>
+      Komponen kecepatan vertikal: <b>vᵧ = v₀ sin θ</b><br>
+      Posisi horizontal: <b>x(t) = v₀ cos θ · t</b><br>
+      Ketinggian: <b>y(t) = v₀ sin θ · t − ½gt²</b><br>
+      Waktu total: <b>t maks = 2v₀ sin θ / g</b><br>
+      Tinggi maksimum: <b>H maks = v₀² sin² θ / 2g</b><br>
+      Jarak maksimum: <b>R maks = v₀² sin(2θ) / g</b>
+    </div>
+    <p class="note">Coba ubah satu parameter pada satu waktu. Perhatikan bagaimana bentuk lintasan, tinggi maksimum, dan jarak maksimum berubah.</p>
+  </section>
+</main>
+<footer>Media pembelajaran interaktif • Gerak parabola • Model tanpa hambatan udara</footer>
+<script>
+(() => {
+  const canvas = document.getElementById('chart');
+  const ctx = canvas.getContext('2d');
+  const speedInput = document.getElementById('speed');
+  const angleInput = document.getElementById('angle');
+  const g = 10;
+  let trajectory = [], point = null, animationId = null, animationIndex = 0, data = null;
+
+  function calculate() {
+    const v0 = Number(speedInput.value);
+    const deg = Number(angleInput.value);
+    if (!Number.isFinite(v0) || v0 <= 0 || v0 > 500) {
+      alert('Kecepatan awal harus lebih besar dari 0 dan tidak lebih dari 500 m/s.'); return;
+    }
+    if (!Number.isFinite(deg) || deg <= 0 || deg >= 90) {
+      alert('Sudut elevasi harus di antara 0° dan 90°.'); return;
+    }
+    const theta = deg * Math.PI / 180;
+    const tmax = 2 * v0 * Math.sin(theta) / g;
+    const hmax = (v0 ** 2 * Math.sin(theta) ** 2) / (2 * g);
+    const rmax = (v0 ** 2 * Math.sin(2 * theta)) / g;
+    const n = 250;
+    trajectory = [];
+    for (let i = 0; i <= n; i++) {
+      const t = tmax * i / n;
+      trajectory.push({x:v0 * Math.cos(theta) * t, y:v0 * Math.sin(theta) * t - .5 * g * t * t});
+    }
+    data = {v0, deg, tmax, hmax, rmax};
+    document.getElementById('height').textContent = hmax.toFixed(2) + ' m';
+    document.getElementById('range').textContent = rmax.toFixed(2) + ' m';
+    document.getElementById('time').textContent = tmax.toFixed(2) + ' s';
+    point = null;
+    draw();
+  }
+
+  function draw() {
+    const dpr = window.devicePixelRatio || 1;
+    const rect = canvas.getBoundingClientRect();
+    canvas.width = Math.max(1, Math.round(rect.width * dpr));
+    canvas.height = Math.max(1, Math.round(rect.height * dpr));
+    ctx.setTransform(dpr,0,0,dpr,0,0);
+    const w = rect.width, h = rect.height;
+    ctx.clearRect(0,0,w,h);
+    if (!trajectory.length) return;
+    const pad = {l:58,r:20,t:25,b:48};
+    const plotW = w-pad.l-pad.r, plotH = h-pad.t-pad.b;
+    const maxX = Math.max(...trajectory.map(p=>p.x)) * 1.12 || 1;
+    const maxY = Math.max(...trajectory.map(p=>p.y)) * 1.2 || 1;
+    const sx = x => pad.l + x/maxX*plotW;
+    const sy = y => h-pad.b-y/maxY*plotH;
+
+    ctx.font = '12px Arial';
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = '#e5edf5';
+    ctx.fillStyle = '#52657a';
+    for (let i=0;i<=5;i++) {
+      const x=maxX*i/5, y=maxY*i/5;
+      ctx.beginPath(); ctx.moveTo(sx(x),pad.t); ctx.lineTo(sx(x),h-pad.b); ctx.stroke();
+      ctx.textAlign='center'; ctx.fillText(x.toFixed(1),sx(x),h-pad.b+18);
+      ctx.beginPath(); ctx.moveTo(pad.l,sy(y)); ctx.lineTo(w-pad.r,sy(y)); ctx.stroke();
+      ctx.textAlign='right'; ctx.fillText(y.toFixed(1),pad.l-9,sy(y)+4);
+    }
+    ctx.strokeStyle='#334155'; ctx.lineWidth=1.5;
+    ctx.beginPath(); ctx.moveTo(pad.l,pad.t); ctx.lineTo(pad.l,h-pad.b); ctx.lineTo(w-pad.r,h-pad.b); ctx.stroke();
+    ctx.fillStyle='#243247'; ctx.font='13px Arial';
+    ctx.textAlign='center'; ctx.fillText('Jarak horizontal (m)',pad.l+plotW/2,h-9);
+    ctx.save(); ctx.translate(16,pad.t+plotH/2); ctx.rotate(-Math.PI/2); ctx.fillText('Ketinggian (m)',0,0); ctx.restore();
+
+    ctx.strokeStyle='#e11d48'; ctx.lineWidth=3; ctx.beginPath();
+    trajectory.forEach((p,i)=> i ? ctx.lineTo(sx(p.x),sy(p.y)) : ctx.moveTo(sx(p.x),sy(p.y)));
+    ctx.stroke();
+    const apex=trajectory.reduce((a,b)=>b.y>a.y?b:a,trajectory[0]);
+    ctx.fillStyle='#2563eb'; ctx.beginPath(); ctx.arc(sx(apex.x),sy(apex.y),4,0,Math.PI*2); ctx.fill();
+    ctx.fillStyle='#174ea6'; ctx.textAlign='left'; ctx.fillText('H maks',Math.min(sx(apex.x)+7,w-65),Math.max(sy(apex.y)-8,14));
+    if (point) {
+      ctx.fillStyle='#059669'; ctx.beginPath(); ctx.arc(sx(point.x),sy(point.y),7,0,Math.PI*2); ctx.fill();
+      ctx.strokeStyle='#059669'; ctx.lineWidth=1.5; ctx.beginPath(); ctx.moveTo(sx(point.x),sy(point.y)); ctx.lineTo(sx(point.x),h-pad.b); ctx.stroke();
+    }
+  }
+
+  function animate() {
+    if (!trajectory.length) calculate();
+    if (animationId) cancelAnimationFrame(animationId);
+    animationIndex = 0;
+    const step = () => {
+      if (animationIndex >= trajectory.length) { animationId = null; point = null; draw(); return; }
+      point = trajectory[animationIndex++];
+      draw();
+      animationId = requestAnimationFrame(step);
+    };
+    animationId = requestAnimationFrame(step);
+  }
+  document.getElementById('process').addEventListener('click', () => {
+    if (animationId) cancelAnimationFrame(animationId);
+    animationId = null; calculate();
+  });
+  document.getElementById('animate').addEventListener('click', animate);
+  document.getElementById('reset').addEventListener('click', () => {
+    if (animationId) cancelAnimationFrame(animationId);
+    animationId = null; speedInput.value=20; angleInput.value=45; calculate();
+  });
+  window.addEventListener('resize', draw);
+  calculate();
+})();
+</script>
+</body>
+</html>
